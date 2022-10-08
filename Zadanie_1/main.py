@@ -16,20 +16,24 @@ empty_yaml = {'name': None,
               'packets': []}
 
 ETH = {'0800': 'IPv4',
-       '86DD': 'IPv6',
        '0806': 'ARP',
-       '88CC': 'LLDP'}
+       '86DD': 'IPv6',
+       '88CC': 'LLDP',
+       '9000': 'ECTP'}
 
 SAP = {'42': 'STP',
+       'AA': 'SNAP',
        'E0': 'IPX',
-       'AA': 'SNAP'}
+       'F0': 'NETBIOS'}
 
-PID = {'23': 'CDT'
-
+PID = {'010b': 'PVSTP+',
+       '2000': 'CDP',
+       '2004': 'DTP',
+       '809B': 'AppleTalk'
 }
 
 def mac_builder(mac):
-    mac_formatted = ''
+    mac_formatted = ""
     for i in range(6):
         mac_formatted += mac[:2].upper()
         mac = mac[2:]
@@ -45,16 +49,16 @@ def hex_dump(frame):
         formatted_hex += frame[i:i + 2].upper()
         i += 2
         if not i % 32:
-            formatted_hex += '\n'
+            formatted_hex += "\n"
         else:
-            formatted_hex += ' '
+            formatted_hex += " "
 
     return formatted_hex
 
 
 if __name__ == '__main__':
-    file = rdpcap("eth-3.pcap")
-    counter = int(0)
+    file = rdpcap("trace-26.pcap")
+    counter = int(1)
     task = copy.deepcopy(empty_yaml)
     task['name'] = 'PKS2022/23'
     task['pcap_name'] = 'eth-3.pcap'
@@ -74,6 +78,10 @@ if __name__ == '__main__':
 
         pck['hexa_frame'] = hex_dump(frame_bytes.hex())
 
+        # ISL header
+        if frame_bytes[:6].hex() == "01000c000000":
+            frame_bytes = frame_bytes[26:]
+
         pck['dst_mac'] = mac_builder(frame_bytes[:6].hex())
         frame_bytes = frame_bytes[6:]
         pck['src_mac'] = mac_builder(frame_bytes[:6].hex())
@@ -82,12 +90,15 @@ if __name__ == '__main__':
             pck['frame_type'] = 'ETHERNET II'
             # pck['ether_type'] = ETH[frame_bytes[:2].hex().upper()]
         else:
-            if frame_bytes[:2].hex().upper() == 'ffff':
+            if frame_bytes[2:4].hex().upper() == 'FFFF':
                 pck['frame_type'] = 'IEEE 802.3 RAW'
-            elif frame_bytes[:2].hex().upper() == 'aaaa':
+            elif frame_bytes[2:4].hex().upper() == 'AAAA':
                 pck['frame_type'] = 'IEEE 802.3 LLC & SNAP'
+                a = frame_bytes[8:10].hex().upper()
+                pck['pid'] = PID[a]
             else:
                 pck['frame_type'] = 'IEEE 802.3 LLC'
+                pck['sap'] = SAP[frame_bytes[2:3].hex().upper()]
         task['packets'].append(pck)
 
     with open("ano.yaml", "w") as file:
