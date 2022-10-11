@@ -26,11 +26,10 @@ SAP = {'42': 'STP',
        'E0': 'IPX',
        'F0': 'NETBIOS'}
 
-PID = {'010b': 'PVSTP+',
+PID = {'010B': 'PVSTP+',
        '2000': 'CDP',
        '2004': 'DTP',
-       '809B': 'AppleTalk'
-}
+       '809B': 'AppleTalk'}
 
 def mac_builder(mac):
     mac_formatted = ""
@@ -57,11 +56,11 @@ def hex_dump(frame):
 
 
 if __name__ == '__main__':
-    file = rdpcap("trace-26.pcap")
+    file = rdpcap("vzorky_pcap_na_analyzu\\eth-6.pcap")
     counter = int(1)
     task = copy.deepcopy(empty_yaml)
     task['name'] = 'PKS2022/23'
-    task['pcap_name'] = 'eth-3.pcap'
+    task['pcap_name'] = 'trace-23.pcap'
     for frame in file:
         frame_bytes = raw(frame)
         pck = copy.deepcopy(empty_pck)
@@ -102,4 +101,4 @@ if __name__ == '__main__':
         task['packets'].append(pck)
 
     with open("ano.yaml", "w") as file:
-        dump(task, file)
+        dump(task, file,sort_keys=False)
