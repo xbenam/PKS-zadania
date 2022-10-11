@@ -56,11 +56,12 @@ def hex_dump(frame):
 
 
 if __name__ == '__main__':
-    file = rdpcap("vzorky_pcap_na_analyzu\\eth-6.pcap")
+    pcap_file_name = "trace-26.pcap"
+    file = rdpcap("vzorky_pcap_na_analyzu\\" + pcap_file_name)
     counter = int(1)
     task = copy.deepcopy(empty_yaml)
     task['name'] = 'PKS2022/23'
-    task['pcap_name'] = 'trace-23.pcap'
+    task['pcap_name'] = pcap_file_name
     for frame in file:
         frame_bytes = raw(frame)
         pck = copy.deepcopy(empty_pck)
@@ -101,4 +102,4 @@ if __name__ == '__main__':
         task['packets'].append(pck)
 
     with open("ano.yaml", "w") as file:
-        dump(task, file,sort_keys=False)
+        dump(task, file, sort_keys=False)
