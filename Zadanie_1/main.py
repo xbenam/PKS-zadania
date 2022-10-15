@@ -56,7 +56,7 @@ def hex_dump(frame):
 
 
 if __name__ == '__main__':
-    pcap_file_name = "trace-26.pcap"
+    pcap_file_name = input("Write pcap file name with .pcap: ")
     file = rdpcap("vzorky_pcap_na_analyzu\\" + pcap_file_name)
     counter = int(1)
     task = copy.deepcopy(empty_yaml)
