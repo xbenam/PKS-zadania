@@ -19,7 +19,6 @@ def check(request, reply):
                 return False
     return True
 
-
 def main(task):
     icmp_yaml['pcap_name'] = task['pcap_name']
     frag = (False, None)
@@ -50,7 +49,8 @@ def main(task):
         req_same_ID = [i for i in icp_full if i.get('id') == com_ID and i.get('icmp_type') == "ECHO REQUEST"]
         rep_same_ID = [i for i in icp_full if i.get('id') == com_ID and i.get('icmp_type') == "ECHO REPLY"]
         if check(req_same_ID, rep_same_ID):
-            complete_comms.append({'number_comm': len(complete_comms) + 1, 'packets': req_same_ID + rep_same_ID})
+            complete_comms.append({'number_comm': len(complete_comms) + 1, 'src_comm': req_same_ID[0]['src_ip'],
+                                   'dst_comm': req_same_ID[0]['dst_ip'], 'packets': req_same_ID + rep_same_ID})
         else:
             partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': req_same_ID})
             partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': rep_same_ID})
