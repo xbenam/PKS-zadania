@@ -1,0 +1,4 @@
+{'42': "STP",
+'AA': "SNAP",
+'E0': "IPX",
+'F0': "NETBIOS"}

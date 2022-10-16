@@ -1,0 +1,4 @@
+{'00': "ECHO REPLY",
+'08': "ECHO REQUEST",
+'0B': "TIME EXCEEDED",
+}
