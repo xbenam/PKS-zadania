@@ -25,5 +25,5 @@ def main(task):
         arp_yaml['partial_comms'].append({'number_comm': len(arp_yaml['partial_comms']) + 1,
                                           'packets': [rq]})
 
-    with open("arp.yaml", "w") as file:
+    with open("ymal_output\\arp.yaml", "w") as file:
         dump(arp_yaml, file, sort_keys=False)

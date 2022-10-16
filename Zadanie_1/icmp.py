@@ -89,5 +89,5 @@ def main(task):
 
     icmp_yaml['complete_comms'] = complete_comms
     icmp_yaml['partial_comms'] = partial_comms
-    with open("icmp.yaml", "w") as file:
+    with open("ymal_output\\icmp.yaml", "w") as file:
         yaml.dump(icmp_yaml, file, sort_keys=False)

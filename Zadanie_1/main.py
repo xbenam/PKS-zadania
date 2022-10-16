@@ -203,5 +203,5 @@ if __name__ == '__main__':
                 arp.main(task)
             case "ICMP":
                 icmp.main(task)
-    with open("ano.yaml", "w") as file:
+    with open("ymal_output\\ano.yaml", "w") as file:
         yaml.dump(task, file, sort_keys=False)
