@@ -58,35 +58,6 @@ def main(task):
             [i for i in icp_full if i.get('id') == com_ID and i.get('icmp_type') != "ECHO REQUEST" and
              i.get('icmp_type') != "ECHO REPLY"]})
 
-
-
-    # communication = []
-    # for frame in icp_full:
-    #     if frame['icmp_type'] == "ECHO REPLY":
-    #         if len(communication) == 0:
-    #             partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': [frame]})
-    #             communication = []
-    #         else:
-    #             if communication[0]['dst_ip'] == frame['src_ip'] and communication[0]['src_ip'] == frame['dst_ip']:
-    #                 if frame['flag'] == 20:
-    #                     communication.append(frame)
-    #                 elif communication[-1]['src_ip'] == frame['src_ip'] and communication[-1]['dst_ip'] == frame['dst_ip']:
-    #                     communication.append(frame)
-    #                     complete_comms.append({'number_comm': len(complete_comms) + 1, 'packets': communication})
-    #                     communication = []
-    #     elif frame['icmp_type'] == "ECHO REQUEST":
-    #         if len(communication) == 0:
-    #             communication.append(frame)
-    #         else:
-    #             if communication[-1]['src_ip'] == frame['src_ip'] and communication[-1]['dst_ip'] == frame['dst_ip']:
-    #                 if communication[-1]['flag'] == 20:
-    #                     communication.append(frame)
-    #                 else:
-    #                     partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': communication})
-    #                     communication = [frame]
-    #     else:
-    #         partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': frame})
-
     icmp_yaml['complete_comms'] = complete_comms
     icmp_yaml['partial_comms'] = partial_comms
     with open("ymal_output\\icmp.yaml", "w") as file:
