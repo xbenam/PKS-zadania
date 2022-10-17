@@ -1,10 +1,13 @@
 
 from copy import deepcopy
-from scapy.all import rdpcap, raw
 from os import path
-import yaml
 
-import arp, icmp
+import yaml
+from scapy.all import rdpcap, raw
+
+import arp
+import icmp
+import udp
 
 empty_pck = {'frame_number': None,
              'len_frame_pcap': None,
@@ -113,12 +116,12 @@ def str_presenter(dumper, data):
 yaml.add_representer(str, str_presenter)
 
 if __name__ == '__main__':
-    prot = [value for key, value in APP_PROTOCOL.items()] + ["ICMP", "ARP"]
+    prot = ["TFTP", "ICMP", "ARP"]
     flag = None
     file = None
     while True:
-        inp = input("Pre klasicku analyzu zadaj iba nazov suboru \"*.pcap\", pre analyzu komunikacie zadaj \"-p ["
-                    "TCP, UDP, ARP a ICMP]\" a nazov suboru \"*.pcap\":")
+        inp = input("Pre klasicku analyzu zadaj iba nazov suboru \"*.pcap\", pre filtorvanie komunikacie zadaj \"-p ["
+                    "TFTP, ARP a ICMP]\" a nazov suboru \"*.pcap\":")
         if inp.split(" ")[0].__eq__("-p"):
             flag = inp.split(" ")[1].upper()
             if flag not in prot:
@@ -133,14 +136,13 @@ if __name__ == '__main__':
                 file = rdpcap("vzorky_pcap_na_analyzu\\" + inp.split(" ")[0])
                 break
         print("Invalid input!")
-        # pcap_file_name = input("Write pcap file name with .pcap: ")
-    # file = rdpcap("vzorky_pcap_na_analyzu\\" + pcap_file_name)
-    # file = rdpcap("vzorky_pcap_na_analyzu\\trace-27.pcap")
     counter = 1
     task = deepcopy(empty_yaml)
     task['name'] = "PKS2022/23"
-    # task['pcap_name'] = pcap_file_name
-    task['pcap_name'] = "eth-3.pcap"
+    if flag is None:
+        task['pcap_name'] = inp.split(" ")[0]
+    else:
+        task['pcap_name'] = inp.split(" ")[2]
     ipv4_sender = {}
 
     for frame in file:
@@ -200,8 +202,10 @@ if __name__ == '__main__':
     if flag is not None:
         match flag:
             case "ARP":
-                arp.main(task)
+                arp.arp_filter(task)
             case "ICMP":
-                icmp.main(task)
+                icmp.icmp_filter(task)
+            case "TFTP":
+                udp.tftp_filter(task)
     with open("ymal_output\\output.yaml", "w") as file:
         yaml.dump(task, file, sort_keys=False)

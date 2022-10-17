@@ -7,7 +7,7 @@ arp_yaml = {'name': "PKS2022/23",
             'complete_comms': [],
             'partial_comms': []}
 
-def main(task):
+def arp_filter(task):
     arp_yaml['pcap_name'] = task['pcap_name']
 
     com_rq = [i for i in task['packets'] if i.get('arp_opcode') == "REQUEST"]
