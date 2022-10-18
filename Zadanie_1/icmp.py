@@ -24,6 +24,8 @@ def check(request, reply):
     :param reply: packet s reply
     :return: ak sa zhoduju v komunikacii tak True inak False
     """
+    if len(request) == 0 or len(reply) == 0:
+        return 0
     for req in request:
         for rep in reply:
             if req['dst_ip'] != rep['src_ip'] or req['src_ip'] != rep['dst_ip']:
@@ -80,11 +82,15 @@ def icmp_filter(frames):
                                    'dst_comm': req_same_ID[0]['dst_ip'], 'packets': req_same_ID + rep_same_ID})
         # nekompletne kominikacie
         else:
-            partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': req_same_ID})
-            partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': rep_same_ID})
-            partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets':
-                [i for i in icp_full if i.get('id') == com_ID and i.get('icmp_type') != "ECHO REQUEST" and
-                 i.get('icmp_type') != "ECHO REPLY"]})
+            if len(req_same_ID) != 0:
+                partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': req_same_ID})
+            if len(rep_same_ID) != 0:
+                partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': rep_same_ID})
+            others = [i for i in icp_full if i.get('id') == com_ID and i.get('icmp_type') != "ECHO REQUEST" and
+                 i.get('icmp_type') != "ECHO REPLY"]
+            if len(others):
+                partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets':others})
+
 
     icmp_yaml['complete_comms'] = complete_comms
     icmp_yaml['partial_comms'] = partial_comms
