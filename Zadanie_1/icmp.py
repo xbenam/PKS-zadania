@@ -46,7 +46,7 @@ def icmp_filter(frames):
     id_list = set()
 
     # vyfltrovanie vsetkych ramcov s TFTP protokolom
-    icmp_only = [i for i in frames['packets'] if i.get('protocol') == 'ICMP']
+    icmp_only = deepcopy([i for i in frames['packets'] if i.get('protocol') == 'ICMP'])
     for frame in icmp_only:
         frame_copy = deepcopy(frame)
         hexa_filed = frame_copy['hexa_frame'].split()

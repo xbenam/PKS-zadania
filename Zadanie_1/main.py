@@ -11,6 +11,7 @@ from scapy.all import rdpcap, raw
 
 import arp
 import icmp
+import protocol_filter
 import rest
 import udp
 
@@ -261,8 +262,9 @@ if __name__ == '__main__':
                 udp.tftp_filter(task)
             case _:
                 rest.filter_frames_by_protocol(task, flag)
-
+    # doimplementacia
+    protocol_filter.doimplementacia(task, 'ICMP')
     # ulozenie dat do yaml subora
-    with open("yaml_output\\output.yaml", "w") as file:
-        yaml.dump(task, file, sort_keys=False)
-    print("Výsledok bol uložený do súboru output.yaml, ktorý sa nachádza v zložke \"yaml_output\"\n")
+    # with open("yaml_output\\output.yaml", "w") as file:
+    #     yaml.dump(task, file, sort_keys=False)
+    # print("Výsledok bol uložený do súboru output.yaml, ktorý sa nachádza v zložke \"yaml_output\"\n")

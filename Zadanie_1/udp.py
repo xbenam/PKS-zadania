@@ -34,7 +34,7 @@ def tftp_filter(frames):
     """
     tftp_yaml['pcap_name'] = frames['pcap_name']
     # vyfltrovanie vsetkych ramcov s TFTP protokolom
-    tftp_only = [i for i in frames['packets'] if i.get('app_protocol') == "TFTP"]
+    tftp_only = deepcopy([i for i in frames['packets'] if i.get('app_protocol') == "TFTP"])
     communications = []  # zoznam komunikacii v zadanom dokumente
 
     for tftp in tftp_only:
