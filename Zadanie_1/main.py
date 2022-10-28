@@ -29,10 +29,6 @@ empty_yaml = {'name': None,
               'pcap_name': None,
               'packets': []}
 
-# slovnik pre
-empty_ipv4_senders = {'node': None,
-                      'number_of_sent_packets': None}
-
 # Layer 2
 with open("Protocols\\l2\\ETH.txt") as f, open("Protocols\\l2\\SAP.txt") as g, \
         open("Protocols\\l2\\PID.txt") as h, open("Protocols\\l2\\ARP_OPCODE.txt") as i:
@@ -156,115 +152,118 @@ def str_presenter(dumper, data):
 yaml.add_representer(str, str_presenter)
 
 if __name__ == '__main__':
-    filter_protocol = [value for key, value in APP_PROTOCOL.items()] + ["ICMP", "ARP"]
-    flag = None
-    file = None
-    while True:  # Vstupne údaje od použivateľa
-        inp = input("Pre klasicku analyzu zadaj iba nazov suboru \"*.pcap\", pre filtorvanie komunikacie zadaj \"-p ["
-                    "TFTP, ARP, ICMP, ...]\" a nazov suboru \"*.pcap\":")
-        # Vykonanie aj filtracie, druha cast
-        if inp.split(" ")[0].__eq__("-p"):  # musel som pouzit toto lebo klasicke == neslo,
-            flag = inp.split(" ")[1].upper()
-            if flag not in filter_protocol:  # kontorla ci zadani protokol existuje
-                print("Invalid protocol!")
-                continue
-            if path.exists("vzorky_pcap_na_analyzu\\" + inp.split(" ")[2]):  # kontorla ci zadani subor existuje
-                file = rdpcap("vzorky_pcap_na_analyzu\\" + inp.split(" ")[2])
-                break
-        # Vykonanie iba analyzi, prva cast
-        else:
-            if path.exists("vzorky_pcap_na_analyzu\\" + inp.split(" ")[0]):  # kontorla ci zadani subor existuje
-                flag = None
-                file = rdpcap("vzorky_pcap_na_analyzu\\" + inp.split(" ")[0])
-                break
-        print("Invalid file!")
-
-    task = deepcopy(empty_yaml)
-    task['name'] = "PKS2022/23"
-    if flag is None:  # pomenovanie podla toho ci sa vykonava aj druha cast
-        task['pcap_name'] = inp.split(" ")[0]
-    else:
-        task['pcap_name'] = inp.split(" ")[2]
-    ipv4_sender = {}
-    counter = 1
-
-    # Prechadzanie kazdym ramcom zo zadaneho subora
-    for frame in file:
-        frame_bytes = raw(frame)  # konvertovanie na hex pole dat
-        pck = deepcopy(empty_pck)  # kopirovanie paketu ktory pojde do yaml
-
-        pck['frame_number'] = counter
-        counter += 1
-
-        pck['len_frame_pcap'] = len(frame_bytes)
-
-        if int(pck['len_frame_pcap'] + 4 < 64):
-            pck['len_frame_medium'] = 64
-        else:
-            pck['len_frame_medium'] = 4 + int(pck['len_frame_pcap'])
-
-        pck['hexa_frame'] = hex_dump(frame_bytes.hex())
-
-        # ISL header
-        if frame_bytes[0:6].hex() == "01000c000000":
-            frame_bytes = frame_bytes[26:]
-
-        # MAC adresy
-        pck['dst_mac'] = mac_builder(frame_bytes[0:6].hex())
-        pck['src_mac'] = mac_builder(frame_bytes[6:12].hex())
-
-        # Protokoly na 1. vrstve
-        # ETHERNET II a jeho pod protokoly
-        if int(frame_bytes[12:14].hex(), 16) > 1500 or int(frame_bytes[12:14].hex(), 16) == 1536:
-            pck['frame_type'] = "ETHERNET II"
-            # protokol na 2. vrstve alebo Unknown
-            pck['ether_type'] = ETH.get(frame_bytes[12:14].hex().upper(), "Unknown")
-            ip_and_protocol_setter(pck, frame_bytes)  # nastavenie IP a protokolu na 3. verstve
-            if pck['ether_type'] == "IPv4":
-                ipv4_sender[pck['src_ip']] = ipv4_sender.get(pck['src_ip'], 0) + 1  # zapis odosielatela
-                if pck['protocol'] in ("TCP", "UDP"):  # nastavenie portov a mena ak maju
-                    ip_header_length = int(frame_bytes[14:15].hex()[1], 16) * 4  # velkost IPv4 hlavicky
-                    pck['src_port'] = int(frame_bytes[ip_header_length + 14: ip_header_length + 16].hex(), 16)
-                    pck['dst_port'] = int(frame_bytes[ip_header_length + 16: ip_header_length + 18].hex(), 16)
-                    pck['app_protocol'] = APP_PROTOCOL.get((str(pck['src_port'])),
-                                                           APP_PROTOCOL.get((str(pck['dst_port']))))
-                    if pck['app_protocol'] is None:  # Port nema specialne meno
-                        pck.pop('app_protocol')
-        else:
-            # RAW
-            if frame_bytes[14:16].hex().upper() == "FFFF":
-                pck['frame_type'] = "IEEE 802.3 RAW"
-            # LLC & SNAP a PID
-            elif frame_bytes[14:16].hex().upper() == "AAAA":
-                pck['frame_type'] = "IEEE 802.3 LLC & SNAP"
-                pck['pid'] = PID[frame_bytes[20:22].hex().upper()]
-            # LLC a SAP
+    while True:
+        filter_protocol = [value for key, value in APP_PROTOCOL.items()] + ["ICMP", "ARP"]
+        flag = None
+        file = None
+        while True:  # Vstupne údaje od použivateľa
+            inp = input("Pre klasicku analyzu zadaj iba nazov suboru \"*.pcap\", pre filtorvanie komunikacie zadaj \"-p ["
+                        "TFTP, ARP, ICMP, ...]\" a nazov suboru \"*.pcap\":")
+            # Vykonanie aj filtracie, druha cast
+            if inp.split(" ")[0].__eq__("-q"):
+                exit(0)
+            if inp.split(" ")[0].__eq__("-p"):  # musel som pouzit toto lebo klasicke == neslo,
+                flag = inp.split(" ")[1].upper()
+                if flag not in filter_protocol:  # kontorla ci zadani protokol existuje
+                    print("Invalid protocol!")
+                    continue
+                if path.exists("vzorky_pcap_na_analyzu\\" + inp.split(" ")[2]):  # kontorla ci zadani subor existuje
+                    file = rdpcap("vzorky_pcap_na_analyzu\\" + inp.split(" ")[2])
+                    break
+            # Vykonanie iba analyzi, prva cast
             else:
-                pck['frame_type'] = "IEEE 802.3 LLC"
-                pck['sap'] = SAP[frame_bytes[14:15].hex().upper()]
-        task['packets'].append(pck)  # pridanie paketu do zoznamu co pojde do yaml subora
+                if path.exists("vzorky_pcap_na_analyzu\\" + inp.split(" ")[0]):  # kontorla ci zadani subor existuje
+                    flag = None
+                    file = rdpcap("vzorky_pcap_na_analyzu\\" + inp.split(" ")[0])
+                    break
+            print("Invalid file!")
 
-    # vyhodnotenie IPv4 odosielatelov
-    ipv4_senders = []
-    for sender in ipv4_sender:
-        ipv4_senders.append({'node': sender, 'number_of_sent_packets': ipv4_sender[sender]})
-    task['ipv4_senders'] = ipv4_senders
-    task['max_send_packets_by'] = [key for key, value in ipv4_sender.items() if value == max(ipv4_sender.values())]
+        task = deepcopy(empty_yaml)
+        task['name'] = "PKS2022/23"
+        if flag is None:  # pomenovanie podla toho ci sa vykonava aj druha cast
+            task['pcap_name'] = inp.split(" ")[0]
+        else:
+            task['pcap_name'] = inp.split(" ")[2]
+        ipv4_sender = {}
+        counter = 1
 
-    # vykonanie filtracie ak bola poziadana
-    if flag is not None:
-        match flag:
-            case "ARP":
-                arp.arp_filter(task)
-            case "ICMP":
-                icmp.icmp_filter(task)
-            case "TFTP":
-                udp.tftp_filter(task)
-            case _:
-                rest.filter_frames_by_protocol(task, flag)
-    # doimplementacia
-    protocol_filter.doimplementacia(task, 'ICMP')
-    # ulozenie dat do yaml subora
-    # with open("yaml_output\\output.yaml", "w") as file:
-    #     yaml.dump(task, file, sort_keys=False)
-    # print("Výsledok bol uložený do súboru output.yaml, ktorý sa nachádza v zložke \"yaml_output\"\n")
+        # Prechadzanie kazdym ramcom zo zadaneho subora
+        for frame in file:
+            frame_bytes = raw(frame)  # konvertovanie na hex pole dat
+            pck = deepcopy(empty_pck)  # kopirovanie paketu ktory pojde do yaml
+
+            pck['frame_number'] = counter
+            counter += 1
+
+            pck['len_frame_pcap'] = len(frame_bytes)
+
+            if int(pck['len_frame_pcap'] + 4 < 64):
+                pck['len_frame_medium'] = 64
+            else:
+                pck['len_frame_medium'] = 4 + int(pck['len_frame_pcap'])
+
+            pck['hexa_frame'] = hex_dump(frame_bytes.hex())
+
+            # ISL header
+            if frame_bytes[0:6].hex() == "01000c000000":
+                frame_bytes = frame_bytes[26:]
+
+            # MAC adresy
+            pck['dst_mac'] = mac_builder(frame_bytes[0:6].hex())
+            pck['src_mac'] = mac_builder(frame_bytes[6:12].hex())
+
+            # Protokoly na 1. vrstve
+            # ETHERNET II a jeho pod protokoly
+            if int(frame_bytes[12:14].hex(), 16) > 1500 or int(frame_bytes[12:14].hex(), 16) == 1536:
+                pck['frame_type'] = "ETHERNET II"
+                # protokol na 2. vrstve alebo Unknown
+                pck['ether_type'] = ETH.get(frame_bytes[12:14].hex().upper(), "Unknown")
+                ip_and_protocol_setter(pck, frame_bytes)  # nastavenie IP a protokolu na 3. verstve
+                if pck['ether_type'] == "IPv4":
+                    ipv4_sender[pck['src_ip']] = ipv4_sender.get(pck['src_ip'], 0) + 1  # zapis odosielatela
+                    if pck['protocol'] in ("TCP", "UDP"):  # nastavenie portov a mena ak maju
+                        ip_header_length = int(frame_bytes[14:15].hex()[1], 16) * 4  # velkost IPv4 hlavicky
+                        pck['src_port'] = int(frame_bytes[ip_header_length + 14: ip_header_length + 16].hex(), 16)
+                        pck['dst_port'] = int(frame_bytes[ip_header_length + 16: ip_header_length + 18].hex(), 16)
+                        pck['app_protocol'] = APP_PROTOCOL.get((str(pck['src_port'])),
+                                                               APP_PROTOCOL.get((str(pck['dst_port']))))
+                        if pck['app_protocol'] is None:  # Port nema specialne meno
+                            pck.pop('app_protocol')
+            else:
+                # RAW
+                if frame_bytes[14:16].hex().upper() == "FFFF":
+                    pck['frame_type'] = "IEEE 802.3 RAW"
+                # LLC & SNAP a PID
+                elif frame_bytes[14:16].hex().upper() == "AAAA":
+                    pck['frame_type'] = "IEEE 802.3 LLC & SNAP"
+                    pck['pid'] = PID[frame_bytes[20:22].hex().upper()]
+                # LLC a SAP
+                else:
+                    pck['frame_type'] = "IEEE 802.3 LLC"
+                    pck['sap'] = SAP[frame_bytes[14:15].hex().upper()]
+            task['packets'].append(pck)  # pridanie paketu do zoznamu co pojde do yaml subora
+
+        # vyhodnotenie IPv4 odosielatelov
+        ipv4_senders = []
+        for sender in ipv4_sender:
+            ipv4_senders.append({'node': sender, 'number_of_sent_packets': ipv4_sender[sender]})
+        task['ipv4_senders'] = ipv4_senders
+        task['max_send_packets_by'] = [key for key, value in ipv4_sender.items() if value == max(ipv4_sender.values())]
+
+        # vykonanie filtracie ak bola poziadana
+        if flag is not None:
+            match flag:
+                case "ARP":
+                    arp.arp_filter(task)
+                case "ICMP":
+                    icmp.icmp_filter(task)
+                case "TFTP":
+                    udp.tftp_filter(task)
+                case _:
+                    rest.filter_frames_by_protocol(task, flag)
+        # doimplementacia
+        # protocol_filter.doimplementacia(task, 'ICMP')
+        # ulozenie dat do yaml subora
+        with open("yaml_output\\output.yaml", "w") as file:
+            yaml.dump(task, file, sort_keys=False)
+        print("Výsledok bol uložený do súboru output.yaml, ktorý sa nachádza v zložke \"yaml_output\"\n")

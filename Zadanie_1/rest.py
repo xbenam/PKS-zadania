@@ -14,7 +14,7 @@ def filter_frames_by_protocol(frames, protocol):
     :param frames: zoznam vsetkych ramcov zo suboru
     :param protocol: protokol podla ktoreho sa ma filtrovat
     """
-    filtered_frame = deepcopy(i for i in frames.get("packets") if i.get('app_protocol') == protocol)
+    filtered_frame = deepcopy([i for i in frames.get("packets") if i.get('app_protocol') == protocol])
     rest = {'name': "PKS2022/23",
             'pcap_name': frames['pcap_name'],
             'filter_name': protocol,

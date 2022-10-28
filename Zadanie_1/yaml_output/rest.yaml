@@ -1,4 +1,4 @@
 name: PKS2022/23
-pcap_name: eth-3.pcap
-filter_name: DNS
+pcap_name: trace-12.pcap
+filter_name: NNTP
 packets: []

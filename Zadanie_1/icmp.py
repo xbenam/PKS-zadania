@@ -43,9 +43,9 @@ def icmp_filter(frames):
     complete_comms = []
     partial_comms = []
     icp_full = []
-    id_list = set()
+    sec_num_list = set()
 
-    # vyfltrovanie vsetkych ramcov s TFTP protokolom
+    # vyfltrovanie vsetkych ramcov s ICMP protokolom
     icmp_only = deepcopy([i for i in frames['packets'] if i.get('protocol') == 'ICMP'])
     for frame in icmp_only:
         frame_copy = deepcopy(frame)
@@ -63,34 +63,33 @@ def icmp_filter(frames):
             frag = (False, None, None)
             frame_copy['flags_mf'] = False
         else:   # normalny ramec
-            frame_copy['icmp_type'] = ICMP.get(hexa_filed[14 + ip_header_length])
+            frame_copy['icmp_type'] = ICMP.get(hexa_filed[14 + ip_header_length].upper())
             frame_copy['flags_mf'] = False
             frame_copy['seq_num(BE)'] = int("".join(hexa_filed[20 + ip_header_length: 22 + ip_header_length]), 16)
 
         frame_copy['frag_offset'] = (int("".join(hexa_filed[20:22]), 16) & 8191) * 8    # prepocet offeset
         frame_copy['id'] = int("".join(hexa_filed[18:20]), 16)
-        id_list.add(frame_copy['seq_num(BE)'])
+        sec_num_list.add(frame_copy['seq_num(BE)'])
         icp_full.append(frame_copy)
 
-    for com_ID in id_list:
+    for sec_num in sec_num_list:
         # komunikacie s rovnakym seq cislom
-        req_same_ID = [i for i in icp_full if i.get('seq_num(BE)') == com_ID and i.get('icmp_type') == "ECHO REQUEST"]
-        rep_same_ID = [i for i in icp_full if i.get('seq_num(BE)') == com_ID and i.get('icmp_type') == "ECHO REPLY"]
+        req_same_sec_num = [i for i in icp_full if i.get('seq_num(BE)') == sec_num and i.get('icmp_type') == "ECHO REQUEST"]
+        rep_same_sec_num = [i for i in icp_full if i.get('seq_num(BE)') == sec_num and i.get('icmp_type') == "ECHO REPLY"]
         # kompletne kominikacie
-        if check(req_same_ID, rep_same_ID):
-            complete_comms.append({'number_comm': len(complete_comms) + 1, 'src_comm': req_same_ID[0]['src_ip'],
-                                   'dst_comm': req_same_ID[0]['dst_ip'], 'packets': req_same_ID + rep_same_ID})
+        if check(req_same_sec_num, rep_same_sec_num):
+            complete_comms.append({'number_comm': len(complete_comms) + 1, 'src_comm': req_same_sec_num[0]['src_ip'],
+                                   'dst_comm': req_same_sec_num[0]['dst_ip'], 'packets': req_same_sec_num + rep_same_sec_num})
         # nekompletne kominikacie
         else:
-            if len(req_same_ID) != 0:
-                partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': req_same_ID})
-            if len(rep_same_ID) != 0:
-                partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': rep_same_ID})
-            others = [i for i in icp_full if i.get('id') == com_ID and i.get('icmp_type') != "ECHO REQUEST" and
+            if len(req_same_sec_num) != 0:
+                partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': req_same_sec_num})
+            if len(rep_same_sec_num) != 0:
+                partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets': rep_same_sec_num})
+            others = [i for i in icp_full if i.get('seq_num(BE)') == sec_num and i.get('icmp_type') != "ECHO REQUEST" and
                  i.get('icmp_type') != "ECHO REPLY"]
             if len(others):
                 partial_comms.append({'number_comm': len(partial_comms) + 1, 'packets':others})
-
 
     icmp_yaml['complete_comms'] = complete_comms
     icmp_yaml['partial_comms'] = partial_comms
