@@ -3,6 +3,7 @@ import time
 import math
 from binascii import crc32
 import threading
+import os
 
 
 """
@@ -24,7 +25,7 @@ Fags:
 \x0c    -   disconnect message (server to client)
 \x0d    -   [OPEN]
 \x0e    -   [OPEN]
-\x0f    -   [OPEN]
+\x0f    -   accept
 
 DATA:
 [0]     FLAG
@@ -36,7 +37,7 @@ DATA:
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 is_connected = False
 idle = True
-max_size = 5
+max_size = 1456
 
 def establish_connection(addr):
     global is_connected
@@ -46,7 +47,7 @@ def establish_connection(addr):
             print(f"trying to connect to {addr[0]} on port {addr[1]}")
             client_socket.connect(addr)
             client_socket.sendto(b"\x00", addr)
-            data, add = client_socket.recvfrom(1024)
+            data, add = client_socket.recvfrom(1456)
             if (data[0] == 1):
                 print("Successfully connected to a server.")
                 is_connected = True
@@ -57,43 +58,100 @@ def establish_connection(addr):
             continue
     return 1
 
-def init_message_fragments(addr, fragments):
+def init_fragments(addr, fragments, flag):
     try:
-        client_socket.sendto(b'\x05' + fragments.to_bytes(3, "big"), addr)
-        data, ad = client_socket.recvfrom(1024)
+        f = flag
+        client_socket.sendto(f + fragments.to_bytes(3, "big"), addr)
+        # time.sleep(1)
+        data, ad = client_socket.recvfrom(1456)
         if data[0] == 6:
             return
     except:
-        return init_message_fragments(addr, fragments)
+        return init_fragments(addr, fragments, flag)
+
+
+def sender(addr, fragments, content):
+    i = 0
+    while i != fragments:
+        frag = ""
+        if (i + 1) * max_size > len(content):
+            frag = content[i * max_size:]
+            crc = crc32(frag.encode()).to_bytes(4, "big")
+            client_socket.sendto(b'\x02' +
+                                 i.to_bytes(3, "big") +
+                                 crc +
+                                 content[i * max_size:].encode(), addr)
+        else:
+            frag = content[i * max_size:(i + 1) * max_size]
+            crc = crc32(frag.encode()).to_bytes(4, "big")
+            client_socket.sendto(b'\x02' +
+                                 i.to_bytes(3, "big") +
+                                 crc +
+                                 content[i * max_size:(i + 1) * max_size].encode(), addr)
+        print(f"Sending {i + 1} fragment.", end=' ')
+        data, ad = client_socket.recvfrom(1456)
+        if data[0] == 6:
+            print(f"Fragment {i + 1} arrived.")
+            i += 1
+        else:
+            print(f"Resending {i + 1} fragment.")
+
 
 def send_message(addr):
     message = input(" -> ")
     fragments = math.ceil(len(message) / max_size)
-    init_message_fragments(addr, fragments)
-    i = 0
-    while i != fragments:
-        frag = ""
-        if (i+1) * max_size > len(message):
-            frag = message[i * max_size:]
-            crc = crc32(frag.encode()).to_bytes(4, "big")
+    init_fragments(addr, fragments, b'\x05')
+    sender(addr, fragments, message)
+
+
+def send_file_name(addr, file_name):
+    fragments = math.ceil(len(file_name) / max_size)
+    init_fragments(addr, fragments, b"\x04")
+    sender(addr, fragments, file_name)
+
+def send_file(addr):
+    file_path = input("absolute file path: ")
+    file_name = file_path.split("\\")[-1]
+    send_file_name(addr, file_name)
+    file_size = os.stat(file_path).st_size
+    fragments = math.ceil(file_size / max_size)
+    init_fragments(addr, fragments, b"\x05")
+    with open(file_path, 'rb') as f:
+        i = 0
+        content = f.read(max_size)
+        while i != fragments:
+            crc = crc32(content).to_bytes(4, "big")
+            a = (b'\x02' + i.to_bytes(3, "big") + crc + content)
+            print(len(a))
             client_socket.sendto(b'\x02' +
                                  i.to_bytes(3, "big") +
                                  crc +
-                                 message[i * max_size:].encode(), addr)
-        else:
-            frag = message[i * max_size:(i + 1) * max_size]
-            crc = crc32(frag.encode()).to_bytes(4, "big")
-            client_socket.sendto(b'\x02' +
-                                 i.to_bytes(3, "big") +
-                                 crc +
-                                 message[i * max_size:(i + 1) * max_size].encode(), addr)
-        print(f"Sending {i+1} fragment.",end=' ')
-        data, ad = client_socket.recvfrom(1024)
-        if data[0] == 6:
-            print(f"Fragment {i+1} arrived.")
-            i += 1
-        else:
-            print(f"Resending {i+1} fragment.")
+                                 content, addr)
+            # frag = ""
+            # if (i + 1) * max_size > len(content):
+            #     frag = content[i * max_size:]
+            #     crc = crc32(frag.encode()).to_bytes(4, "big")
+            #     client_socket.sendto(b'\x02' +
+            #                          i.to_bytes(3, "big") +
+            #                          crc +
+            #                          content[i * max_size:].encode(), addr)
+            # else:
+            #     frag = content[i * max_size:(i + 1) * max_size]
+            #     crc = crc32(frag.encode()).to_bytes(4, "big")
+            #     client_socket.sendto(b'\x02' +
+            #                          i.to_bytes(3, "big") +
+            #                          crc +
+            #                          content[i * max_size:(i + 1) * max_size].encode(), addr)
+            print(f"Sending {i + 1} fragment.", end=' ')
+            data, ad = client_socket.recvfrom(1456)
+            if data[0] == 6:
+                print(f"Fragment {i + 1} arrived.")
+                content = f.read(max_size)
+                i += 1
+            else:
+                print(f"Resending {i + 1} fragment.")
+
+
 
 def keep_alive(addr):
     global is_connected
@@ -102,9 +160,9 @@ def keep_alive(addr):
         time.sleep(5)
         if idle:
             try:
-                client_socket.settimeout(2)
+                # client_socket.settimeout(2)
                 client_socket.sendto(b"\x08", addr)
-                data, ad = client_socket.recvfrom(1024)
+                data, ad = client_socket.recvfrom(1456)
                 if data[0] == 9:
                     continue
             except:
@@ -112,25 +170,42 @@ def keep_alive(addr):
                 continue
 
 
+def disconnect(addr):
+    global is_connected
+    try:
+        client_socket.sendto(b"\x0b", addr)
+        data, ad = client_socket.recvfrom(1456)
+        if data[0] == 15:
+            is_connected = False
+            return
+    except:
+        disconnect(addr)
+
+
 def client_program():
     global idle
     host = socket.gethostname()
     port = 1234
 
-    t2 = threading.Thread(target=keep_alive, args=[("127.0.0.2", port)])
+    # t2 = threading.Thread(target=keep_alive, args=[("127.0.0.2", port)])
 
     if (establish_connection(("127.0.0.2", port))):
         print("Connection failed, server is not responding.")
         return
-    t2.start()
+    # t2.start()
     while is_connected:
         mod = input("message m, file f:\n")
         idle = False
         match mod:
             case "message" | "m":
                 send_message(("127.0.0.2", port))
+            case "file" | "f":
+                send_file(("127.0.0.2", port))
+            case "quit" | "q":
+                disconnect(("127.0.0.2", port))
+
         idle = True
-    t2.join()
+    # t2.join()
     client_socket.close()
 
 
