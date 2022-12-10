@@ -2,6 +2,7 @@ import socket
 import time
 import math
 from binascii import crc32
+import threading
 
 
 """
@@ -17,10 +18,10 @@ Fags:
 \x06    -   recieved all fragments
 \x07    -   request for resend 
 \x08    -   keep alive
-\x09    -   switch
-\x0a    -   disconnect from server (client to server)
-\x0b    -   disconnect message (server to client)
-\x0c    -   [OPEN]
+\x09    -   keep alive respond
+\x0a    -   switch
+\x0b    -   disconnect from server (client to server)
+\x0c    -   disconnect message (server to client)
 \x0d    -   [OPEN]
 \x0e    -   [OPEN]
 \x0f    -   [OPEN]
@@ -34,6 +35,7 @@ DATA:
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 is_connected = False
+idle = True
 max_size = 5
 
 def establish_connection(addr):
@@ -93,23 +95,45 @@ def send_message(addr):
         else:
             print(f"Resending {i+1} fragment.")
 
+def keep_alive(addr):
+    global is_connected
+    global idle
+    while is_connected:
+        time.sleep(5)
+        if idle:
+            try:
+                client_socket.settimeout(2)
+                client_socket.sendto(b"\x08", addr)
+                data, ad = client_socket.recvfrom(1024)
+                if data[0] == 9:
+                    continue
+            except:
+                print("Server did not respons.")
+                continue
+
+
 def client_program():
+    global idle
     host = socket.gethostname()
-    port = 5000
+    port = 1234
+
+    t2 = threading.Thread(target=keep_alive, args=[("127.0.0.2", port)])
 
     if (establish_connection(("127.0.0.2", port))):
         print("Connection failed, server is not responding.")
         return
-
+    t2.start()
     while is_connected:
         mod = input("message m, file f:\n")
+        idle = False
         match mod:
             case "message" | "m":
                 send_message(("127.0.0.2", port))
-
-
+        idle = True
+    t2.join()
     client_socket.close()
 
 
 if __name__ == '__main__':
-    client_program()
+    t1 = threading.Thread(target=client_program)
+    t1.start()

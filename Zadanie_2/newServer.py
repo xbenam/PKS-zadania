@@ -26,7 +26,7 @@ def server_program():
     host = socket.gethostname()
     print(host)
     ct = False
-    port = 5000
+    port = 1234
 
     server_socket.bind(("127.0.0.2", port))
 
@@ -46,6 +46,8 @@ def server_program():
                 fragments = int.from_bytes(data[1:4], "big")
                 print(f"Expected fragments {fragments}")
                 recieve_message(addr, fragments)
+            case 8:
+                server_socket.sendto(b"\x09", addr)
     conn.close()
 
 
