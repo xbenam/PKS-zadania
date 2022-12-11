@@ -4,7 +4,7 @@ import math
 from binascii import crc32
 import threading
 import os
-
+import newServer
 
 """
 Fags:
@@ -37,7 +37,10 @@ DATA:
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 is_connected = False
 idle = True
-max_size = 1456
+max_size = 250
+
+host = ""
+port = 0
 
 def establish_connection(addr):
     global is_connected
@@ -58,6 +61,7 @@ def establish_connection(addr):
             continue
     return 1
 
+
 def init_fragments(addr, fragments, flag):
     try:
         f = flag
@@ -72,11 +76,16 @@ def init_fragments(addr, fragments, flag):
 
 def sender(addr, fragments, content):
     i = 0
+    error = input("would you like send a corrupted fragment? (y/n)")
+    done = False
     while i != fragments:
         frag = ""
         if (i + 1) * max_size > len(content):
             frag = content[i * max_size:]
             crc = crc32(frag.encode()).to_bytes(4, "big")
+            if error == 'y' and not done and i == math.floor(fragments / 2):
+                crc = (1).to_bytes(4, "big")
+                done = True
             client_socket.sendto(b'\x02' +
                                  i.to_bytes(3, "big") +
                                  crc +
@@ -84,6 +93,9 @@ def sender(addr, fragments, content):
         else:
             frag = content[i * max_size:(i + 1) * max_size]
             crc = crc32(frag.encode()).to_bytes(4, "big")
+            if error == 'y' and not done and i == math.floor(fragments / 2):
+                crc = (1).to_bytes(4, "big")
+                done = True
             client_socket.sendto(b'\x02' +
                                  i.to_bytes(3, "big") +
                                  crc +
@@ -91,14 +103,14 @@ def sender(addr, fragments, content):
         print(f"Sending {i + 1} fragment.", end=' ')
         data, ad = client_socket.recvfrom(1456)
         if data[0] == 6:
-            print(f"Fragment {i + 1} arrived.")
+            print(f"\033[0;32mFragment {i + 1} arrived.\033[0m")
             i += 1
         else:
-            print(f"Resending {i + 1} fragment.")
+            print(f"\033[0;31mResending {i + 1} fragment.\033[0m")
 
 
 def send_message(addr):
-    message = input(" -> ")
+    message = input("Write your message.\n -> ")
     fragments = math.ceil(len(message) / max_size)
     init_fragments(addr, fragments, b'\x05')
     sender(addr, fragments, message)
@@ -109,48 +121,42 @@ def send_file_name(addr, file_name):
     init_fragments(addr, fragments, b"\x04")
     sender(addr, fragments, file_name)
 
+
 def send_file(addr):
     file_path = input("absolute file path: ")
+    # a = os.path.isfile(file_path)
+    while not os.path.isfile(file_path):
+        print("File does not exist.")
+        file_path = input("absolute file path: ")
     file_name = file_path.split("\\")[-1]
     send_file_name(addr, file_name)
     file_size = os.stat(file_path).st_size
     fragments = math.ceil(file_size / max_size)
     init_fragments(addr, fragments, b"\x05")
+    error = input("would you like send a corrupted fragment? (y/n)")
+    done = False
     with open(file_path, 'rb') as f:
         i = 0
         content = f.read(max_size)
         while i != fragments:
             crc = crc32(content).to_bytes(4, "big")
             a = (b'\x02' + i.to_bytes(3, "big") + crc + content)
-            print(len(a))
-            client_socket.sendto(b'\x02' +
+            # print(len(a))
+            if error == 'y' and not done and i == math.floor(fragments / 2):
+                crc = (1).to_bytes(4, "big")
+                done = True
+            client_socket.sendto(b'\x03' +
                                  i.to_bytes(3, "big") +
                                  crc +
                                  content, addr)
-            # frag = ""
-            # if (i + 1) * max_size > len(content):
-            #     frag = content[i * max_size:]
-            #     crc = crc32(frag.encode()).to_bytes(4, "big")
-            #     client_socket.sendto(b'\x02' +
-            #                          i.to_bytes(3, "big") +
-            #                          crc +
-            #                          content[i * max_size:].encode(), addr)
-            # else:
-            #     frag = content[i * max_size:(i + 1) * max_size]
-            #     crc = crc32(frag.encode()).to_bytes(4, "big")
-            #     client_socket.sendto(b'\x02' +
-            #                          i.to_bytes(3, "big") +
-            #                          crc +
-            #                          content[i * max_size:(i + 1) * max_size].encode(), addr)
-            print(f"Sending {i + 1} fragment.", end=' ')
+            print(f"Sending {i + 1} fragment. [{len(a)} B]", end=' ')
             data, ad = client_socket.recvfrom(1456)
             if data[0] == 6:
-                print(f"Fragment {i + 1} arrived.")
+                print(f"\033[0;32mFragment {i + 1} arrived.\033[0m")
                 content = f.read(max_size)
                 i += 1
             else:
-                print(f"Resending {i + 1} fragment.")
-
+                print(f"\033[0;31mResending {i + 1} fragment.\033[0m")
 
 
 def keep_alive(addr):
@@ -184,25 +190,30 @@ def disconnect(addr):
 
 def client_program():
     global idle
-    host = socket.gethostname()
-    port = 1234
+    global max_size
+    # t2 = threading.Thread(target=keep_alive, args=[(host, port)])
 
-    # t2 = threading.Thread(target=keep_alive, args=[("127.0.0.2", port)])
-
-    if (establish_connection(("127.0.0.2", port))):
+    if (establish_connection((host, port))):
         print("Connection failed, server is not responding.")
         return
     # t2.start()
     while is_connected:
-        mod = input("message m, file f:\n")
+        mod = input("\033[0;33mTo send message type:\tMESSAGE or M\nTo send file type:\t\tFILE or F:\n"
+                    "To disconnect type:\t\tQUIT or Q\nTo change frag size:\tCHANGE or C\n\033[0m -> ")
         idle = False
-        match mod:
+        match mod.lower():
             case "message" | "m":
-                send_message(("127.0.0.2", port))
+                send_message((host, port))
             case "file" | "f":
-                send_file(("127.0.0.2", port))
+                send_file((host, port))
             case "quit" | "q":
-                disconnect(("127.0.0.2", port))
+                disconnect((host, port))
+            case "change" | "c":
+                print(f"Current fragment size: {max_size}")
+                max_size = 0
+                a = max_size
+                while max_size > 1464 or max_size <= 0:
+                    max_size = int(input("Set new maximal fragment size [1-1464]: "))
 
         idle = True
     # t2.join()
@@ -210,5 +221,8 @@ def client_program():
 
 
 if __name__ == '__main__':
+    max_size = int(input("Set new maximal fragment size [1-1464]: "))
+    host = "127.0.0.2"
+    port = 1234
     t1 = threading.Thread(target=client_program)
     t1.start()

@@ -1,8 +1,11 @@
+import os.path
 import socket
 import time
 from binascii import crc32
+import newClient
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+file_location = None
 
 
 def recieve_message(addr, fragments):
@@ -13,10 +16,10 @@ def recieve_message(addr, fragments):
         if int.from_bytes(data[4:8], "big") == crc32(data[8:]):
             server_socket.sendto(b"\x06", addr)
             message += data[8:].decode()
-            print(f"Recieved {i+1}/{fragments}.")
+            print(f"\033[0;32mRecieved {i+1}/{fragments}.\033[0m")
             i += 1
         else:
-            print(f"Fragment {i+1} is invalid or did not arrive at all.")
+            print(f"\033[0;31mFragment {i+1} is corruppted.\033[0m")
             server_socket.sendto(b"\x07", addr)
     return message
 
@@ -26,25 +29,29 @@ def recieve_file(addr, file_name):
     if data[0] == 5:
         fragments = int.from_bytes(data[1:4], "big")
         server_socket.sendto(b"\x06", addr)
-    with open("D:\\Skola\\FIIT\\5._semester\\PKS\\PKS-zadania\\Zadanie_2\\nove"+file_name, "wb") as f:
+    with open(f"{file_location}\\jh{file_name}", "wb") as f:
         data, ad = server_socket.recvfrom(1500)
         i = 1
         while True:
-            if int.from_bytes(data[4:8], "big") == crc32(data[8:]):
+            if data[0] == 3 and int.from_bytes(data[4:8], "big") == crc32(data[8:]):
                 f.write(data[8:])
-                print(f"Recieved {i}/{fragments}")
+                print(f"\033[0;32mRecieved [{i}/{fragments}]\033[0m")
                 i += 1
                 server_socket.sendto(b"\x06", addr)
             else:
-                print(f"Fragment {i} is corruppted.")
+                print(f"\033[0;31mFragment {i} is corruppted.\033[0m")
                 server_socket.sendto(b"\x07", addr)
+                data, ad = server_socket.recvfrom(1500)
+                continue
             if int.from_bytes(data[1:4], "big") + 1  < fragments:
                 data, ad = server_socket.recvfrom(1500)
             else:
                 break
-    print(f"File saved in D:\\Skola\\FIIT\\5._semester\\PKS\\PKS-zadania\\Zadanie_2\\nove{file_name}")
+    print(f"File saved in {file_location}\\{file_name}")
+
 
 def server_program():
+    global file_location
     ct = False
     while not ct:
         try:
@@ -70,6 +77,16 @@ def server_program():
                 fragments = int.from_bytes(data[1:4], "big")
                 file_name = recieve_message(addr, fragments)
                 print(f"File name: {file_name}")
+                if file_location is None:
+                    file_location = input("Set the path to directory: ")
+                    while not os.path.exists(file_location):
+                        print("Directory does not exist.")
+                        file_location = input("Set the path to directory: ")
+                elif input("Would you like to change direcetory? (y/n)") == 'y':
+                    file_location = input("Set the path to directory: ")
+                    while not os.path.exists(file_location):
+                        print("Directory does not exist.")
+                        file_location = input("Set the path to directory: ")
                 recieve_file(addr, file_name)
             case 8:
                 server_socket.sendto(b"\x09", addr)
@@ -77,6 +94,7 @@ def server_program():
                 server_socket.sendto(b"\x0f", addr)
                 # time.sleep(1)
                 break
+
     # server_socket.close()
 
 
