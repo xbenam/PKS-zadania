@@ -327,8 +327,8 @@ class client:
 if __name__ == '__main__':
     cl = client()
     # cl.create_socket()
-    x = int(input("port:"))
-    cl.run_client("127.0.0.3", x)
+    # p = int(input("port:"))
+    cl.run_client(input("IP: "), int(input("port:")))
     # cl.keep_alive_thread.start()
     # cl.client_part()
 
