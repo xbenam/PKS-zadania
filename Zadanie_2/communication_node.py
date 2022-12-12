@@ -28,11 +28,12 @@ class communication_node:
         self.host = host
         self.port = port
         self.tries = 0
+        self.s.settimeout(1)
         while self.tries < 5:
             try:
-                print(f"trying to connect to {self.host} on port {self.port}")
+                self.s
+                print(f"Trying to connect to {self.host} on port {self.port}")
                 self.s.connect((self.host, self.port))
-                # pac = packet(b"\x00", None, None)
                 self.s.sendto(b"\x00", (self.host, self.port))
                 data, add = self.s.recvfrom(1500)
                 if (data[0] == 1):
@@ -45,7 +46,7 @@ class communication_node:
                 self.tries += 1
                 sleep(1)
                 continue
-
+        self.s.settimeout(100)
     def bind_socket(self, host: str, port: int):
         self.s.bind((host, port))
         self.is_listening = True
@@ -65,7 +66,7 @@ class communication_node:
                 else:
                     return
             except:
-                continue
+                exit(0)
 
     def recieve_message(self, fragments):
         message = ""
@@ -126,7 +127,7 @@ class communication_node:
                         self.s.sendto(b"\x06", (self.client_IP, self.client_port))
                         fragments = int.from_bytes(data[1:4], "big")
                         print(f"Expected fragments {fragments}")
-                        print(f"from {self.client_IP}: {(self.recieve_message(fragments))}")
+                        print(f"From {self.client_IP}: {(self.recieve_message(fragments))}")
 
                     case 4:     # FILE
                         self.s.sendto(b"\x06", (self.client_IP, self.client_port))
