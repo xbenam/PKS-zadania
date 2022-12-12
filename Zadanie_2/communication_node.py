@@ -95,7 +95,7 @@ class communication_node:
         if data[0] == 5:
             fragments = int.from_bytes(data[1:4], "big")
             self.s.sendto(b"\x06", (self.client_IP, self.client_port))
-        with open(f"{self.file_location}\\jh{file_name}", "wb") as f:
+        with open(f"{self.file_location}\\{file_name}", "wb") as f:
             data, ad = self.s.recvfrom(1500)
             i = 1
             while True:
@@ -138,7 +138,7 @@ class communication_node:
                             while not os.path.exists(self.file_location):
                                 print("Directory does not exist.")
                                 self.file_location = input("Set the path to directory: ")
-                        elif input(f"Current file location: {self.file_location}\nWould you like to change direcetory? (y/n)") == 'y':
+                        elif input(f"Current file location: {self.file_location}\nWould you like to change direcetory? (y/n)\n -> ") == 'y':
                             self.file_location = input("Set the path to directory: ")
                             while not os.path.exists(self.file_location):
                                 print("Directory does not exist.")
@@ -160,11 +160,11 @@ class communication_node:
                         self.is_connected = False
                         if self.switch:
                             break
-                        elif input("End communication? (y/n)") != "y":
+                        elif input("End communication? (y/n)\n -> ") != "y":
                             self.is_listening = True
                             break
                         continue
-                if input("Would you like to switch roles? (y/n)") == "y":
+                if input("Would you like to switch roles? (y/n)\n -> ") == "y":
                     self.s.sendto(b"\x0c", (self.client_IP, self.client_port))
                 else:
                     self.s.sendto(b"\x0e", (self.client_IP, self.client_port))
@@ -248,7 +248,7 @@ class communication_node:
 
     def sender(self, fragments, message):
         i = 0
-        error = input("would you like send a corrupted fragment? (y/n)")
+        error = input("would you like send a corrupted fragment? (y/n)\n -> ")
         done = False
         while i != fragments:
             try:
@@ -301,7 +301,7 @@ class communication_node:
         file_size = os.stat(file_path).st_size
         fragments = ceil(file_size / self.max_size)
         self.init_fragments(fragments, b"\x05")
-        error = input("would you like send a corrupted fragment? (y/n)")
+        error = input("would you like send a corrupted fragment? (y/n)\n -> ")
         done = False
         with open(file_path, 'rb') as f:
             try:
