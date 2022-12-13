@@ -5,6 +5,33 @@ from binascii import crc32
 from math import ceil, floor
 from time import sleep
 
+"""
+Fags:
+-velkost    1 byte
+-interpretovane ako cislo v binarnej sustave
+\x00    -   comm request (client to server)
+\x01    -   comm replay (server to client)
+\x02    -   send message
+\x03    -   send file
+\x04    -   file name
+\x05    -   fragment count
+\x06    -   recieved all fragments
+\x07    -   request for resend 
+\x08    -   keep alive
+\x09    -   keep alive respond
+\x0a    -   switch
+\x0b    -   disconnect from server (client to server)
+\x0c    -   disconnect message (server to client)
+\x0d    -   [OPEN]
+\x0e    -   [OPEN]
+\x0f    -   accept
+
+DATA:
+[0]     FLAG
+[1:4]   Fragment number
+[4:8]   CRC
+[8:]    data
+"""
 
 class communication_node:
     is_connected = False
