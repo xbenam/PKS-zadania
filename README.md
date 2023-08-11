@@ -4,4 +4,4 @@ Analyzátor Ethernet siete, ktorý analyzuje komunikácie v sieti zaznamenané v
 # Zadanie-2
 Komunikácia medzi dvomi zariadeniami na lokálnej sietí pomocou vlastného protokolu nad protokolom UDP.
 
-* Obe zadanie boli vypracované pomocou programovacieho jazyka python3.*
+*Obe zadanie boli vypracované pomocou programovacieho jazyka python3.*
