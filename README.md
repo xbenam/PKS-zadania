@@ -1,5 +1,7 @@
 # Zadanie-1
-Program na čitanie a zobrazenie dát z .pcap súborov.
+Analyzátor Ethernet siete, ktorý analyzuje komunikácie v sieti zaznamenané v .pcap súbore a poskytuje informácie o komunikáciách.
 
 # Zadanie-2
-Kominikácia medzi dvomi zariadeniami.
+Komunikácia medzi dvomi zariadeniami na lokálnej sietí pomocou vlastného protokolu nad protokolom UDP.
+
+## Obe zadanie boli vypracované pomocou programovacieho jazyka python3.
